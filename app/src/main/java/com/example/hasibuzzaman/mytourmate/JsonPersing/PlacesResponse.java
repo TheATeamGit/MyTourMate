@@ -23,7 +23,7 @@ public class PlacesResponse {
     private String nextPageToken;
     @SerializedName("results")
     @Expose
-    private List<Result> results = new ArrayList<Result>();
+    private ArrayList<Result> results = new ArrayList<Result>();
     @SerializedName("status")
     @Expose
     private String status;
@@ -69,7 +69,7 @@ public class PlacesResponse {
      * @return
      * The results
      */
-    public List<Result> getResults() {
+    public ArrayList<Result> getResults() {
         return results;
     }
 
@@ -78,7 +78,7 @@ public class PlacesResponse {
      * @param results
      * The results
      */
-    public void setResults(List<Result> results) {
+    public void setResults(ArrayList<Result> results) {
         this.results = results;
     }
 
@@ -103,7 +103,7 @@ public class PlacesResponse {
 
 
 
-    public class Result {     // Start of OpeningHours
+    public static class Result {     // Start of OpeningHours
 
         @SerializedName("geometry")
         @Expose
@@ -358,7 +358,7 @@ public class PlacesResponse {
             this.vicinity = vicinity;
         }
 
-    } // End oF Result
+
 
 
     public class OpeningHours {  // Start of OpeningHours
@@ -745,5 +745,5 @@ public class PlacesResponse {
 
     } // End of photos
 
-
+    } // End oF Result
 }

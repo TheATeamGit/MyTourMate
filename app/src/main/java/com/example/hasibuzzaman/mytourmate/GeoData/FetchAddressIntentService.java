@@ -7,10 +7,8 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.ResultReceiver;
-import android.text.TextUtils;
 import android.util.Log;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -54,18 +52,18 @@ public class FetchAddressIntentService extends IntentService {
             /*if(addresses != null )
             {*/
                 Address address = addresses.get(1);
-                ArrayList<String> addressFragments= new ArrayList<>();
+                String addressFragments= null;
                 /*for(int i=0; i<address.getMaxAddressLineIndex();i++)
                 {
                     addressFragments.add(address.getAddressLine(i));
                     Log.e("Testing ",address.getAddressLine(i));
                 }*/
 
-            addressFragments.add(address.getFeatureName());
-            addressFragments.add(address.getSubLocality());
-            addressFragments.add(address.getSubAdminArea());
-            addressFragments.add(address.getAdminArea());
-            addressFragments.add(address.getLocality());
+            addressFragments=address.getFeatureName();
+            addressFragments=addressFragments+", "+address.getSubLocality();
+           // addressFragments.add(address.getSubAdminArea());
+           // addressFragments.add(address.getAdminArea());
+            addressFragments=addressFragments+", "+address.getLocality();
 
 
 
@@ -73,9 +71,11 @@ public class FetchAddressIntentService extends IntentService {
                addressFragments.add(address.getLocality());
                addressFragments.add(address.getPostalCode());
 */
-
+/*
             deliverResultToReceiver(Constants.SUCCESS_RESULT,
-                        TextUtils.join(System.getProperty("line.separator"),addressFragments));
+                        TextUtils.join(System.getProperty("line.separator"),addressFragments));*/
+            deliverResultToReceiver(Constants.SUCCESS_RESULT,addressFragments);
+
 
 
            // }

@@ -5,6 +5,7 @@ package com.example.hasibuzzaman.mytourmate.mainClassAndMap;
 // https://developers.google.com/places/supported_types
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -17,40 +18,54 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.hasibuzzaman.mytourmate.GeoData.Constants;
 import com.example.hasibuzzaman.mytourmate.GeoData.FetchAddressIntentService;
+import com.example.hasibuzzaman.mytourmate.JsonPersing.Constantsty;
+import com.example.hasibuzzaman.mytourmate.JsonPersing.PlacesResponse;
+import com.example.hasibuzzaman.mytourmate.JsonPersing.PlacesServiceApi;
 import com.example.hasibuzzaman.mytourmate.R;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.Place;
-import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
-import com.google.android.gms.location.places.ui.PlaceSelectionListener;
 import com.google.android.gms.maps.model.LatLng;
+
+import java.util.ArrayList;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks
         , GoogleApiClient.OnConnectionFailedListener, LocationListener {
     GoogleApiClient googleApiClient;
     LocationRequest locationRequest;
      TextView lattitudeTv;
-    TextView longitudeTv,AddressTV;
+
     Location latlong;
     AddressResultReceiver resultreceiver;
     String Address;
+    MyJsonGooglePlaces  myJsonGooglePlaces;
+    ArrayList<PlacesResponse.Result> results ;
 
     LatLng latLng;
 
     Place Myplace;
 
     // Views Refernce
-        TextView searchTv;
+        TextView searchTv,AddressTV;
 
+        ListView listView;
     // Views reference End
 
 
@@ -59,11 +74,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        intilizeViews();  // initilizing all vies
+        initilize();  // initilizing all vies
 
         // Setting our custom toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        myJsonGooglePlaces=new MyJsonGooglePlaces(MainActivity.this,getLayoutInflater());
+
+        myJsonGooglePlaces.networkLibraryPopulate();
 
 
         // Making google Api client
@@ -77,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         resultreceiver = new AddressResultReceiver(new Handler());
 
 
-        PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
+        /*PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
                 getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
 
         autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
@@ -94,18 +112,22 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 // TODO: Handle the error.
                 Log.e("Error", "An error occurred: " + status);
             }
-        });
+        });*/
+
+
 
 
 
     }
 
-    public void intilizeViews()
+    public void initilize()
     {
-        searchTv = (TextView) findViewById(R.id.searchTv);
+      /*  searchTv = (TextView) findViewById(R.id.searchTv);
         lattitudeTv= (TextView) findViewById(R.id.lattitudeTv);
-        longitudeTv= (TextView) findViewById(R.id.longitudeTv);
+        longitudeTv= (TextView) findViewById(R.id.longitudeTv);*/
         AddressTV= (TextView) findViewById(R.id.AddressTV);
+        listView= (ListView) findViewById(R.id.listView);
+       // addressType = (TextView) findViewById(R.id.addressType);
 
 
 
@@ -132,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     public void onConnected(@Nullable Bundle bundle) {
         locationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(1000);
+                .setInterval(1000*60);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
@@ -166,8 +188,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         latlong= location;
         startIntentService();
 
-        lattitudeTv.setText(location.getLatitude()+"");
-        longitudeTv.setText(location.getLongitude()+"");
+     /*   lattitudeTv.setText(location.getLatitude()+"");
+        longitudeTv.setText(location.getLongitude()+"");*/
 
 
     }
@@ -197,11 +219,21 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     }
 
+    public void restaurent(View view) {
+        myJsonGooglePlaces.LoadData("restaurant",true);
+       // String str = results.get(0).getName() + results.get(0).getVicinity();
+       /* if(str!= null)
+        {
+            Toast.makeText(MainActivity.this,str, Toast.LENGTH_LONG).show();
+            addressType.setText(str);
+
+        }
+*/
+    }
+
 
     public class AddressResultReceiver extends ResultReceiver
     {
-
-
         public AddressResultReceiver(Handler handler) {
             super(handler);
         }
@@ -217,6 +249,75 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         }
     }
+    // Start a Class
+
+
+
+
+    class MyJsonGooglePlaces {
+        Context context;
+        Retrofit retrofit;
+        PlacesServiceApi placesServiceApi;
+        PlacesResponse placesResponse;
+        ArrayList<PlacesResponse.Result> results ;
+        String typeName;
+        LayoutInflater layoutInflater;
+
+        public MyJsonGooglePlaces(Context context, LayoutInflater layoutInflater) {
+            this.context = context;
+            this.layoutInflater = layoutInflater ;
+        }
+
+        public void networkLibraryPopulate()
+        {
+            retrofit= new Retrofit.Builder().baseUrl(Constantsty.BASE_URL)
+                    .addConverterFactory(GsonConverterFactory.create()).build();
+
+            placesServiceApi = retrofit.create(PlacesServiceApi.class);
+
+        }
+
+        public void LoadData(String type,boolean toogle)
+        {   String url = null;
+            // if Toogle is true than Serch for Types Else General
+            if(toogle)
+            {
+
+                url = "maps/api/place/nearbysearch/json?location=23.7842676%2C90.369294&radius=5000&types="+type+"&key=AIzaSyB3PpqkyKKcYOiEw1XjQ2BsjF6zB_x8peI";
+            }
+
+            Call<PlacesResponse> placesResponseCall = placesServiceApi.getPlaces(url);
+
+            placesResponseCall.enqueue(new Callback<PlacesResponse>() {
+                @Override
+                public void onResponse(Call<PlacesResponse> call, Response<PlacesResponse> response) {
+                    placesResponse = response.body();
+                    results = placesResponse.getResults();
+                    typeName = "Restaurent Name : "+results.get(0).getName()+" Address : "+results.get(0).getVicinity();
+
+                    listView.setAdapter(new MyAdapter(MainActivity.this,getLayoutInflater(),results));
+
+                   // TextView addressType = (TextView)findViewById(R.id.addressType);
+                   // addressType.setText(typeName);
+                }
+
+                @Override
+                public void onFailure(Call<PlacesResponse> call, Throwable t) {
+
+                    Toast.makeText(context,"Failure",Toast.LENGTH_LONG).show();
+
+                }
+            });
+
+
+        }
+
+    }
+
+
+
+
+
 
 
 
