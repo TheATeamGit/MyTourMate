@@ -12,8 +12,8 @@
         android:layout_gravity="center_vertical">
 
         <ImageView
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
             android:id="@+id/myimageview"
             android:src="@drawable/place" />
     </LinearLayout>
@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:text="New Text"
             android:id="@+id/placeNameTv"
-            android:textSize="20dp"
+            android:textSize="17sp"
             android:textStyle="bold"
             />
 
@@ -37,7 +37,7 @@
             android:layout_height="wrap_content"
             android:text="New Text"
             android:id="@+id/placeAddressTv"
-            android:textSize="15dp"
+            android:textSize="15sp"
             android:textIsSelectable="false" />
     </LinearLayout>
 

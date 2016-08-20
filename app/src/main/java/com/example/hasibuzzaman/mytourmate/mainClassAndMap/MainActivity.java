@@ -18,7 +18,6 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -31,12 +30,17 @@ import com.example.hasibuzzaman.mytourmate.JsonPersing.PlacesResponse;
 import com.example.hasibuzzaman.mytourmate.JsonPersing.PlacesServiceApi;
 import com.example.hasibuzzaman.mytourmate.R;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlaceAutocomplete;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 
 import java.util.ArrayList;
 
@@ -50,20 +54,23 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         , GoogleApiClient.OnConnectionFailedListener, LocationListener {
     GoogleApiClient googleApiClient;
     LocationRequest locationRequest;
-     TextView lattitudeTv;
+     TextView lattitudeTv; Place place;
 
-    Location latlong;
+    Location latlong;  Double myLattitude, myLongitude ;
     AddressResultReceiver resultreceiver;
     String Address;
     MyJsonGooglePlaces  myJsonGooglePlaces;
     ArrayList<PlacesResponse.Result> results ;
+    private static final LatLngBounds BOUNDS_MOUNTAIN_VIEW = new LatLngBounds(
+            new LatLng(37.398160, -122.180831), new LatLng(37.430610, -121.972090));
+    private static final int REQUEST_SELECT_PLACE = 1000;
 
     LatLng latLng;
 
     Place Myplace;
 
     // Views Refernce
-        TextView searchTv,AddressTV;
+        TextView searchTv,AddressTV,cityNametv;
 
         ListView listView;
     // Views reference End
@@ -79,7 +86,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         // Setting our custom toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        myJsonGooglePlaces=new MyJsonGooglePlaces(MainActivity.this,getLayoutInflater());
+        myJsonGooglePlaces=new MyJsonGooglePlaces();
 
         myJsonGooglePlaces.networkLibraryPopulate();
 
@@ -118,6 +125,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
 
 
+
+
+
     }
 
     public void initilize()
@@ -127,6 +137,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         longitudeTv= (TextView) findViewById(R.id.longitudeTv);*/
         AddressTV= (TextView) findViewById(R.id.AddressTV);
         listView= (ListView) findViewById(R.id.listView);
+        cityNametv = (TextView) findViewById(R.id.cityNametv);
        // addressType = (TextView) findViewById(R.id.addressType);
 
 
@@ -186,6 +197,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     @Override
     public void onLocationChanged(Location location) {
         latlong= location;
+        myLattitude=latlong.getLatitude();
+        myLongitude=latlong.getLongitude();
         startIntentService();
 
      /*   lattitudeTv.setText(location.getLatitude()+"");
@@ -231,6 +244,19 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 */
     }
 
+    public void search(View view) {
+        try {
+            Intent intent = new PlaceAutocomplete.IntentBuilder
+                    (PlaceAutocomplete.MODE_OVERLAY)
+                    .build(MainActivity.this);
+            startActivityForResult(intent, REQUEST_SELECT_PLACE);
+        } catch (GooglePlayServicesRepairableException |
+                GooglePlayServicesNotAvailableException e) {
+            e.printStackTrace();
+        }
+
+    }
+
 
     public class AddressResultReceiver extends ResultReceiver
     {
@@ -242,6 +268,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             Address = resultData.getString(Constants.RESULT_DATA_KEY);
             AddressTV.setText(Address +"");
+            myJsonGooglePlaces.LoadData("restaurant",false);
             if (resultCode == Constants.SUCCESS_RESULT) {
                 Log.e("onReceiveResult","onReceiveResult");
             }
@@ -253,19 +280,36 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
 
 
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if (requestCode == REQUEST_SELECT_PLACE) {
+            if (resultCode == RESULT_OK) {
+                place = PlaceAutocomplete.getPlace(this, data);
+                cityNametv.setText(place.getName());
+               // Log.e("Toi call hoisost kere", place.getViewport().toString());
+            } else if (resultCode == PlaceAutocomplete.RESULT_ERROR) {
+                Status status = PlaceAutocomplete.getStatus(this, data);
+                Toast.makeText(MainActivity.this,status.toString(),Toast.LENGTH_LONG).show();
+            }
+        }
+
+
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+
+
 
     class MyJsonGooglePlaces {
         Context context;
         Retrofit retrofit;
         PlacesServiceApi placesServiceApi;
         PlacesResponse placesResponse;
-        ArrayList<PlacesResponse.Result> results ;
         String typeName;
-        LayoutInflater layoutInflater;
 
-        public MyJsonGooglePlaces(Context context, LayoutInflater layoutInflater) {
-            this.context = context;
-            this.layoutInflater = layoutInflater ;
+
+        public MyJsonGooglePlaces() {
+
         }
 
         public void networkLibraryPopulate()
@@ -283,7 +327,13 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             if(toogle)
             {
 
-                url = "maps/api/place/nearbysearch/json?location=23.7842676%2C90.369294&radius=5000&types="+type+"&key=AIzaSyB3PpqkyKKcYOiEw1XjQ2BsjF6zB_x8peI";
+                url = "maps/api/place/nearbysearch/json?location="+myLattitude+","+myLongitude+"&radius=2000&types="+type+"&key=AIzaSyB3PpqkyKKcYOiEw1XjQ2BsjF6zB_x8peI";
+              //https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=23.7842676,90.369294&radius=500&type=restaurant&key=AIzaSyB3PpqkyKKcYOiEw1XjQ2BsjF6zB_x8peI
+
+            }
+            else
+            {
+                url = "maps/api/place/nearbysearch/json?location="+myLattitude+","+myLongitude+"&radius=1500&key=AIzaSyB3PpqkyKKcYOiEw1XjQ2BsjF6zB_x8peI";
             }
 
             Call<PlacesResponse> placesResponseCall = placesServiceApi.getPlaces(url);

@@ -47,15 +47,25 @@
             <!--  android:background="@android:color/transparent"-->
 
             <TextView
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:id="@+id/searchTv"
-                android:text="Enter Location"
-                android:gravity="center"
-                android:background="#d9d9d9"
-                android:textColor="#807f7f"
-                android:onClick="searchTvOnclick"
-                android:textSize="20sp" />
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="Search location"
+                android:id="@+id/cityNametv"
+                android:textSize="30sp"
+                android:textColor="#ffffff"
+                android:gravity="center_vertical|center_horizontal"
+
+                />
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:background="@drawable/search"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="10dp"
+                android:onClick="search"
+                />
 
         </RelativeLayout>
 
